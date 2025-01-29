@@ -1,6 +1,0 @@
-docker run --name gpt-project-db -e POSTGRES_PASSWORD=M31nGptProject -d postgres
-
-1.)	
-docker run --name gpt-project-db -e POSTGRES_PASSWORD=M31nGptProject -p 5432:5432 -d postgres
-2.)
-docker exec -ti gpt-project-db createdb -U postgres gpt-project-test
