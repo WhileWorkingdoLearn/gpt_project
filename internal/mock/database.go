@@ -21,6 +21,12 @@ type Queries struct {
 	db map[uuid.UUID]Task
 }
 
+func NewMockDB() *Queries {
+	return &Queries{
+		db: make(map[uuid.UUID]Task),
+	}
+}
+
 type CreateTaskParams struct {
 	OrderID uuid.UUID
 	Name    string
@@ -29,8 +35,9 @@ type CreateTaskParams struct {
 }
 
 func (q *Queries) CreateTask(ctx context.Context, arg CreateTaskParams) (Task, error) {
+	var newTask Task
 
-	return Task{}, nil
+	return newTask, nil
 }
 
 func (q *Queries) DeleteTaskById(ctx context.Context, id uuid.UUID) error {
