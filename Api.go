@@ -29,7 +29,7 @@ var PathValues = struct {
 }
 
 type ApiConfig struct {
-	dbQueries     *database.Queries
+	dbQueries     database.IQueries
 	plattform     string
 	user_api_key  string
 	admin_api_key string
@@ -44,6 +44,16 @@ type CreateTaskParams struct {
 	Status  string    `json:"status"`
 }
 
+type UpdateTaskNameParams struct {
+	ID   uuid.UUID
+	Name string
+}
+
+type UpdateTaskStatusParams struct {
+	ID     uuid.UUID
+	Status string
+}
+
 type Task struct {
 	ID        uuid.UUID `json:"id"`
 	CreatedAt time.Time `json:"created_at"`
@@ -52,6 +62,11 @@ type Task struct {
 	Name      string    `json:"name"`
 	Data      string    `json:"data"`
 	Status    string    `json:"status"`
+}
+
+type GetAllTasksParams struct {
+	Limit  int32
+	Offset int32
 }
 
 func (apiCfg *ApiConfig) CreateTask(w http.ResponseWriter, req *http.Request) {

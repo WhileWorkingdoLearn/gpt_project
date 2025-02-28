@@ -41,17 +41,19 @@ func main() {
 	}
 
 	dbUrl := os.Getenv("DB_URL")
-	if len(dbUrl) == 0 {
-		log.Fatal("DB_URL Not Provided")
-	}
-
-	db, errDB := sql.Open("postgres", dbUrl)
-	if errDB != nil {
-		log.Println(errDB)
+	var queries database.IQueries
+	if len(dbUrl) != 0 {
+		db, errDB := sql.Open("postgres", dbUrl)
+		if errDB != nil {
+			log.Println(errDB)
+		}
+		queries = database.New(db)
+	} else {
+		queries = database.NewMockDB()
 	}
 
 	cfg := ApiConfig{
-		dbQueries:    database.New(db),
+		dbQueries:    queries,
 		port:         portFromEnv,
 		user_api_key: userApiKey,
 	}
@@ -73,6 +75,7 @@ func main() {
 	smux.HandleFunc(HTTPMethod.POST+" /v1/reset", Authorized("ApiKey", cfg.user_api_key, cfg.Reset))
 
 	server := http.Server{Handler: smux, Addr: ":" + portFromEnv}
+	fmt.Println("listening on Port: ", server.Addr)
 	errServer := server.ListenAndServe()
 	if errServer != nil {
 		log.Fatal(errServer)

@@ -7,7 +7,20 @@ package database
 import (
 	"context"
 	"database/sql"
+		"github.com/google/uuid"
+		"time"
 )
+
+type IQueries interface {
+	CreateTask(ctx context.Context, arg CreateTaskParams) (Task, error)
+	DeleteTaskById(ctx context.Context, id uuid.UUID) error
+	DeleteAllTasks(ctx context.Context) error
+	GetAllTasks(ctx context.Context, arg GetAllTasksParams) ([]Task, error)
+	GetTaskByID(ctx context.Context, id uuid.UUID) (Task, error)
+	GetTaskByMonth(ctx context.Context, dollar_1 time.Time) ([]Task, error)
+	UpdateTaskName(ctx context.Context, arg UpdateTaskNameParams) error
+	UpdateTaskStatus(ctx context.Context, arg UpdateTaskStatusParams) error
+}
 
 type DBTX interface {
 	ExecContext(context.Context, string, ...interface{}) (sql.Result, error)
@@ -16,7 +29,7 @@ type DBTX interface {
 	QueryRowContext(context.Context, string, ...interface{}) *sql.Row
 }
 
-func New(db DBTX) *Queries {
+func New(db DBTX) IQueries {
 	return &Queries{db: db}
 }
 
