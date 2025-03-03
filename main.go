@@ -1,14 +1,10 @@
 package main
 
 import (
-	"database/sql"
 	"fmt"
-	"log"
-	"net/http"
-	"os"
+	"time"
 
-	"github.com/WhileCodingDoLearn/gpt_project/internal/database"
-	"github.com/joho/godotenv"
+	"github.com/WhileCodingDoLearn/gpt_project/internal/background"
 	_ "github.com/lib/pq"
 )
 
@@ -24,60 +20,75 @@ func init() {
 }
 
 func main() {
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatalf("err loading: %v", err)
-	}
+	t := background.NewHandler(1 *time.Second)
 
-	portFromEnv := os.Getenv("PORT")
-	if len(portFromEnv) == 0 {
-		portFromEnv = "8080"
-	}
+	t.AddTask(func(t time.Time) {
+		fmt.Println("Current time: ", t)
+	})
+	t.AddTask(func(t time.Time) {
+		fmt.Println("Current time Second: ", t.Add(2*time.Second))
+	})
 
-	userApiKey := os.Getenv("API_KEY_USER")
-	if len(userApiKey) == 0 {
-		fmt.Println("Warning!: No Password Provided. Used SECRET_PASSWORD instead")
-		userApiKey = "SECRET_PASSWORD"
-	}
+	t.Run()
+	time.Sleep(3 * time.Second)
+	t.Stop()
 
-	dbUrl := os.Getenv("DB_URL")
-	var queries database.IQueries
-	if len(dbUrl) != 0 {
-		db, errDB := sql.Open("postgres", dbUrl)
-		if errDB != nil {
-			log.Println(errDB)
+	/*
+		err := godotenv.Load()
+		if err != nil {
+			log.Fatalf("err loading: %v", err)
 		}
-		queries = database.New(db)
-	} else {
-		queries = database.NewMockDB()
-	}
 
-	cfg := ApiConfig{
-		dbQueries:    queries,
-		port:         portFromEnv,
-		user_api_key: userApiKey,
-	}
+		portFromEnv := os.Getenv("PORT")
+		if len(portFromEnv) == 0 {
+			portFromEnv = "8080"
+		}
 
-	smux := CustomSmux("Api.log")
+		userApiKey := os.Getenv("API_KEY_USER")
+		if len(userApiKey) == 0 {
+			fmt.Println("Warning!: No Password Provided. Used SECRET_PASSWORD instead")
+			userApiKey = "SECRET_PASSWORD"
+		}
 
-	smux.HandleFunc(HTTPMethod.GET+" /v1/orders", cfg.GetTasks)
+		dbUrl := os.Getenv("DB_URL")
+		var queries database.IQueries
+		if len(dbUrl) != 0 {
+			db, errDB := sql.Open("postgres", dbUrl)
+			if errDB != nil {
+				log.Println(errDB)
+			}
+			queries = database.New(db)
+		} else {
+			queries = database.NewMockDB()
+		}
 
-	smux.HandleFunc(HTTPMethod.GET+" /v1/orders/{id}", cfg.GetTasksByID)
+		cfg := ApiConfig{
+			dbQueries:    queries,
+			port:         portFromEnv,
+			user_api_key: userApiKey,
+		}
 
-	smux.HandleFunc(HTTPMethod.GET+" /v1/orders/pdf/{year}/{month}", cfg.GetTaskByMonth)
+		smux := CustomSmux("Api.log")
 
-	smux.HandleFunc(HTTPMethod.POST+" /v1/orders", Authorized("ApiKey", cfg.user_api_key, cfg.CreateTask))
+		smux.HandleFunc(HTTPMethod.GET+" /v1/orders", cfg.GetTasks)
 
-	smux.HandleFunc(HTTPMethod.POST+" /v1/orders/csv", Authorized("ApiKey", cfg.user_api_key, cfg.UpdloadTasksCSV))
+		smux.HandleFunc(HTTPMethod.GET+" /v1/orders/{id}", cfg.GetTasksByID)
 
-	smux.HandleFunc(HTTPMethod.UPDATE+" /v1/orders/{id}", Authorized("ApiKey", cfg.user_api_key, cfg.UpdateTaskStatus))
+		smux.HandleFunc(HTTPMethod.GET+" /v1/orders/pdf/{year}/{month}", cfg.GetTaskByMonth)
 
-	smux.HandleFunc(HTTPMethod.POST+" /v1/reset", Authorized("ApiKey", cfg.user_api_key, cfg.Reset))
+		smux.HandleFunc(HTTPMethod.POST+" /v1/orders", Authorized("ApiKey", cfg.user_api_key, cfg.CreateTask))
 
-	server := http.Server{Handler: smux, Addr: ":" + portFromEnv}
-	fmt.Println("listening on Port: ", server.Addr)
-	errServer := server.ListenAndServe()
-	if errServer != nil {
-		log.Fatal(errServer)
-	}
+		smux.HandleFunc(HTTPMethod.POST+" /v1/orders/csv", Authorized("ApiKey", cfg.user_api_key, cfg.UpdloadTasksCSV))
+
+		smux.HandleFunc(HTTPMethod.UPDATE+" /v1/orders/{id}", Authorized("ApiKey", cfg.user_api_key, cfg.UpdateTaskStatus))
+
+		smux.HandleFunc(HTTPMethod.POST+" /v1/reset", Authorized("ApiKey", cfg.user_api_key, cfg.Reset))
+
+		server := http.Server{Handler: smux, Addr: ":" + portFromEnv}
+		fmt.Println("listening on Port: ", server.Addr)
+		errServer := server.ListenAndServe()
+		if errServer != nil {
+			log.Fatal(errServer)
+		}
+	*/
 }

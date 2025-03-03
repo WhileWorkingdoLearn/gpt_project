@@ -21,6 +21,15 @@ type GetAllTasksParams struct {
 	Offset int32
 }
 
+
+
+func DefaultGetParam() GetAllTasksParams {
+	param := GetAllTasksParams{}
+	param.Offset = 0
+	param.Limit = 1000
+	return param
+}
+
 func (q *Queries) GetAllTasks(ctx context.Context, arg GetAllTasksParams) ([]Task, error) {
 	rows, err := q.db.QueryContext(ctx, getAllTasks, arg.Limit, arg.Offset)
 	if err != nil {

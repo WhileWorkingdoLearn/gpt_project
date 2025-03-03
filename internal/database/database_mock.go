@@ -16,23 +16,46 @@ type MockQueries struct {
 	lock sync.Mutex
 }
 
+type StatusType struct {
+	NEW       string
+	PROCESS   string
+	COMPLETED string
+}
+
+var status StatusType
+
+var dbMap map[uuid.UUID]Task
+
+func init() {
+	dbMap = make(map[uuid.UUID]Task, 0)
+	status = StatusType{
+		NEW:       "New",
+		PROCESS:   "In process",
+		COMPLETED: "Completed",
+	}
+}
+
 func NewMockDB() IQueries {
 	return &MockQueries{
-		db: make(map[uuid.UUID]Task),
+		db: dbMap,
 	}
 }
 
 func (q *MockQueries) CreateTask(ctx context.Context, arg CreateTaskParams) (Task, error) {
-
-	if arg.Status != "New" || arg.Status != "In process" || arg.Status != "Completed" {
-		return Task{}, nil
+	switch arg.Status {
+	case status.NEW:
+	case status.PROCESS:
+	case status.COMPLETED:
+		q.lock.Lock()
+		defer q.lock.Unlock()
+	default:
+		return Task{}, fmt.Errorf("status not supprted : '%v'", arg.Status)
 	}
 
-	q.lock.Lock()
-	defer q.lock.Unlock()
+	id := uuid.New()
 
 	newTask := Task{
-		ID:        uuid.New(),
+		ID:        id,
 		CreatedAt: time.Now().UTC(),
 		UpdatedAt: time.Now().UTC(),
 		OrderID:   arg.OrderID,
@@ -61,12 +84,15 @@ func (q *MockQueries) DeleteAllTasks(ctx context.Context) error {
 }
 
 func (q *MockQueries) GetAllTasks(ctx context.Context, arg GetAllTasksParams) ([]Task, error) {
-	return slices.Collect(maps.Values(q.db)), nil
+	data := slices.Collect(maps.Values(q.db))
+	result := data[arg.Offset:arg.Limit]
+	return result, nil
 }
 
 func (q *MockQueries) GetTaskByID(ctx context.Context, id uuid.UUID) (Task, error) {
-	t, ok := q.db[id]
-	if !ok {
+
+	t, found := q.db[id]
+	if !found {
 		return Task{}, fmt.Errorf("id not found in table")
 	}
 	return t, nil
@@ -100,6 +126,16 @@ func (q *MockQueries) UpdateTaskName(ctx context.Context, arg UpdateTaskNamePara
 }
 
 func (q *MockQueries) UpdateTaskStatus(ctx context.Context, arg UpdateTaskStatusParams) error {
+	switch arg.Status {
+	case status.NEW:
+	case status.PROCESS:
+	case status.COMPLETED:
+		q.lock.Lock()
+		defer q.lock.Unlock()
+	default:
+		return fmt.Errorf("status not supprted : '%v'", arg.Status)
+	}
+
 	t, ok := q.db[arg.ID]
 	if !ok {
 		return fmt.Errorf("id not found in table")
