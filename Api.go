@@ -29,12 +29,9 @@ var PathValues = struct {
 }
 
 type ApiConfig struct {
-	dbQueries     database.IQueries
-	plattform     string
-	user_api_key  string
-	admin_api_key string
-	token_secret  string
-	port          string
+	dbQueries    database.IQueries
+	user_api_key string
+	port         string
 }
 
 type CreateTaskParams struct {

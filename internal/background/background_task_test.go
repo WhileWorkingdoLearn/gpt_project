@@ -4,23 +4,21 @@ import (
 	"fmt"
 	"testing"
 	"time"
+
+	"github.com/magiconair/properties/assert"
 )
 
 func TestBackgroundTaks(t *testing.T) {
-	ticker := time.NewTicker(time.Second)
-	defer ticker.Stop()
-	done := make(chan bool)
-	go func() {
-		time.Sleep(10 * time.Second)
-		done <- true
-	}()
-	for {
-		select {
-		case <-done:
-			fmt.Println("Done!")
-			return
-		case t := <-ticker.C:
-			fmt.Println("Current time: ", t)
-		}
-	}
+	ticker := NewBackgroundWorker()
+	ticker.SetInterval(1 * time.Second)
+	ticker.AddTask(NewTask("1223", func() {
+		fmt.Println("Task 1")
+	}))
+
+	ticker.RunUntil(4 * time.Second)
+
+	time.Sleep(5 * time.Second)
+
+	assert.Equal(t, ticker.PastInterval(), 3, fmt.Sprintf("Cycles does not match %v", ticker.PastInterval()))
+
 }
