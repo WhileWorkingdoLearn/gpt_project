@@ -42,6 +42,12 @@ func main() {
 		userApiKey = "SECRET_PASSWORD"
 	}
 
+	adminApiKey := os.Getenv("API_KEY_ADMIN")
+	if len(adminApiKey) == 0 {
+		fmt.Println("Warning!: No Password Provided. Used SECRET_ADMIN_PASSWORD instead")
+		adminApiKey = "SECRET_ADMIN_PASSWORD"
+	}
+
 	dbUrl := os.Getenv("DB_URL")
 	var queries database.IQueries
 	if len(dbUrl) != 0 {
@@ -79,10 +85,14 @@ func main() {
 	adminCfg := AdminConfig{
 		dbQueries:             queries,
 		backgroundTaskHandler: background.NewBackgroundWorker(),
+		admin_api_key:         adminApiKey,
 	}
 
-	smux.HandleFunc(HTTPMethod.POST+" /v1/amdin/sheduler", Authorized("ApiKey", cfg.user_api_key, adminCfg.StartHandler))
-	smux.HandleFunc(HTTPMethod.POST+" /v1/amdin/sheduler", Authorized("ApiKey", cfg.user_api_key, adminCfg.StartHandler))
+	smux.HandleFunc(HTTPMethod.POST+" /v1/amdin/sheduler", Authorized("ApiKey", adminCfg.admin_api_key, adminCfg.HandlerHook))
+
+	smux.HandleFunc(HTTPMethod.GET+" /v1/amdin/sheduler", Authorized("ApiKey", adminCfg.admin_api_key, adminCfg.GetHandlerInfo))
+
+	smux.HandleFunc(HTTPMethod.GET+" /v1/amdin/sheduler/{taskid}", Authorized("ApiKey", adminCfg.admin_api_key, adminCfg.GetTaskInfo))
 
 	server := http.Server{Handler: smux, Addr: ":" + portFromEnv}
 	fmt.Println("listening on Port: ", server.Addr)

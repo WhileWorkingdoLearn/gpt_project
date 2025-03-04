@@ -21,10 +21,10 @@ type TaskTicket struct {
 }
 
 type TaskInfo struct {
-	id         string
-	name       string
-	started_At time.Time
-	last_run   time.Time
+	ID         string    `json:"id"`
+	Name       string    `json:"name"`
+	Started_At time.Time `json:"started_at"`
+	Last_run   time.Time `json:"latest_run"`
 }
 
 func NewTask(name string, Task func()) backgroundTask {
@@ -100,7 +100,17 @@ func (th *TaskHandler) GetTaskInfo(id string) (TaskInfo, error) {
 	if !found {
 		return TaskInfo{}, fmt.Errorf("id was not found")
 	}
-	return TaskInfo{id: t.id, name: t.name, started_At: t.started_At, last_run: t.last_run}, nil
+	return TaskInfo{ID: t.id, Name: t.name, Started_At: t.started_At, Last_run: t.last_run}, nil
+}
+
+func (th *TaskHandler) GetAllTaskInfo() []TaskInfo {
+	th.mutex.Lock()
+	defer th.mutex.Unlock()
+	tasks := make([]TaskInfo, 0)
+	for _, task := range th.tasks {
+		tasks = append(tasks, TaskInfo{ID: task.id, Name: task.name, Started_At: task.started_At, Last_run: task.last_run})
+	}
+	return tasks
 }
 
 func (th *TaskHandler) SetInterval(value time.Duration) {
@@ -114,34 +124,42 @@ func (th *TaskHandler) GetSetInterval() time.Duration {
 	return th.interval
 }
 
+func (th *TaskHandler) GetRunUntil() string {
+	if th.runUntil == nil {
+		return "undefined"
+	}
+	deltaTime := *th.runUntil
+	return deltaTime.UTC().String()
+}
+
 func (th *TaskHandler) internalRun() {
 	defer th.ticker.Stop()
-
 	for {
 		select {
 		case t := <-th.ticker.C:
 			if th.runUntil != nil {
 				if t.After(*th.runUntil) {
-					fmt.Println("Done")
 					th.Stop()
 					return
 				}
 			}
 
-			fmt.Println("Stil running")
 			th.cycles.Add(1)
 			for _, v := range th.tasks {
 				v.last_run = time.Now()
 				go v.task()
 			}
-		case done := <-th.done:
-			fmt.Println("Done th.Done ", done)
+		case <-th.done:
+			fmt.Println("Taskhandler Shut Down:")
 			th.ticker.Stop()
-			th.isRuning = false
 			return
 		}
 	}
 
+}
+
+func (th *TaskHandler) IsRuning() bool {
+	return th.isRuning
 }
 
 func (th *TaskHandler) Run() error {
@@ -151,7 +169,7 @@ func (th *TaskHandler) Run() error {
 	}
 
 	th.ticker = time.NewTicker(th.interval)
-
+	th.isRuning = true
 	go th.internalRun()
 	return nil
 }
@@ -160,6 +178,7 @@ func (th *TaskHandler) RunUntil(until time.Duration) error {
 	if th.isRuning {
 		return fmt.Errorf("task is already Running")
 	}
+	th.isRuning = true
 	timeUntil := time.Now().Add(until)
 	th.runUntil = &timeUntil
 	th.ticker = time.NewTicker(th.interval)
@@ -171,6 +190,7 @@ func (th *TaskHandler) RunUntil(until time.Duration) error {
 
 func (th *TaskHandler) Stop() {
 	if th.isRuning {
+		th.isRuning = false
 		close(th.done)
 	}
 
