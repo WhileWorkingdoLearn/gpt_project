@@ -13,7 +13,7 @@ import (
 
 type AdminConfig struct {
 	dbQueries             database.IQueries
-	backgroundTaskHandler *background.TaskHandler
+	backgroundTaskHandler background.BackgroundHandler
 	admin_api_key         string
 	token_secret          string
 	plattform             string

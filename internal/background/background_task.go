@@ -15,7 +15,7 @@ type backgroundTask struct {
 	task       func()
 }
 
-type TaskTicket struct {
+type TaskReceipt struct {
 	id   string
 	name string
 }
@@ -45,6 +45,23 @@ func (bt backgroundTask) LastRun() time.Time {
 	return bt.last_run
 }
 
+type BackgroundHandler interface {
+	PastInterval() int
+	ResetCounter()
+	AddTask(bt backgroundTask) TaskReceipt
+	RemoveTask(id string)
+	GetTaskCount() int
+	GetTaskInfo(id string) (TaskInfo, error)
+	GetAllTaskInfo() []TaskInfo
+	SetInterval(value time.Duration)
+	GetSetInterval() time.Duration
+	GetRunUntil() string
+	IsRuning() bool
+	Run() error
+	RunUntil(until time.Duration) error
+	Stop()
+}
+
 type TaskHandler struct {
 	ticker   *time.Ticker
 	interval time.Duration
@@ -56,7 +73,7 @@ type TaskHandler struct {
 	mutex    sync.Mutex
 }
 
-func NewBackgroundWorker() *TaskHandler {
+func NewBackgroundWorker() BackgroundHandler {
 	return &TaskHandler{
 		done:     make(chan bool),
 		tasks:    make(map[string]backgroundTask, 0),
@@ -76,11 +93,11 @@ func (th *TaskHandler) ResetCounter() {
 	val.Store(0)
 }
 
-func (th *TaskHandler) AddTask(bt backgroundTask) TaskTicket {
+func (th *TaskHandler) AddTask(bt backgroundTask) TaskReceipt {
 	th.mutex.Lock()
 	defer th.mutex.Unlock()
 	th.tasks[bt.id] = bt
-	return TaskTicket{id: bt.id, name: bt.name}
+	return TaskReceipt{id: bt.id, name: bt.name}
 }
 
 func (th *TaskHandler) RemoveTask(id string) {
