@@ -7,22 +7,35 @@ import (
 	"net/http"
 	"os"
 
+	_ "github.com/WhileCodingDoLearn/gpt_project/docs"
 	"github.com/WhileCodingDoLearn/gpt_project/internal/background"
 	"github.com/WhileCodingDoLearn/gpt_project/internal/database"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
+	httpSwagger "github.com/swaggo/http-swagger"
 )
-
-/*
-goose postgres postgres://postgres:postgres@localhost:5432/task_db up/down
-
-*/
 
 var VERSION string
 
 func init() {
 	VERSION = "/V1"
 }
+
+// @title           Meine API
+// @version         1.0
+// @description     Dies ist eine Beispiel-API mit Swagger-Dokumentation
+// @host           localhost:8080
+// @BasePath       /v1
+
+// @Summary        Holt einen Benutzer
+// @Description    Holt einen Benutzer anhand der ID
+// @Tags           Benutzer
+// @Accept         json
+// @Produce        json
+// @Param          id  path  int  true  "Benutzer ID"
+// @Success        200  {object}  map[string]string
+// @Failure        400  {object}  map[string]string
+// @Router         /users/{id} [get]
 
 func main() {
 
@@ -47,9 +60,10 @@ func main() {
 		fmt.Println("Warning!: No Password Provided. Used SECRET_ADMIN_PASSWORD instead")
 		adminApiKey = "SECRET_ADMIN_PASSWORD"
 	}
-
+	/**/
 	dbUrl := os.Getenv("DB_URL")
 	var queries database.IQueries
+
 	if len(dbUrl) != 0 {
 		db, errDB := sql.Open("postgres", dbUrl)
 		if errDB != nil {
@@ -57,8 +71,11 @@ func main() {
 		}
 		queries = database.New(db)
 	} else {
+
 		queries = database.NewMockDB()
 	}
+
+	smux := CustomSmux("Api.log")
 
 	cfg := ApiConfig{
 		dbQueries:    queries,
@@ -66,7 +83,7 @@ func main() {
 		user_api_key: userApiKey,
 	}
 
-	smux := CustomSmux("Api.log")
+	smux.HandleFunc(HTTPMethod.GET+" /swagger/", httpSwagger.WrapHandler)
 
 	smux.HandleFunc(HTTPMethod.GET+" /v1/orders", cfg.GetTasks)
 
@@ -94,9 +111,10 @@ func main() {
 
 	smux.HandleFunc(HTTPMethod.GET+" /v1/amdin/sheduler/{taskid}", Authorized("ApiKey", adminCfg.admin_api_key, adminCfg.GetTaskInfo))
 
-	server := http.Server{Handler: smux, Addr: ":" + portFromEnv}
+	server := &http.Server{Handler: smux, Addr: ":" + portFromEnv}
 	fmt.Println("listening on Port: ", server.Addr)
 	errServer := server.ListenAndServe()
+
 	if errServer != nil {
 		log.Fatal(errServer)
 	}

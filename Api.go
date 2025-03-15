@@ -15,12 +15,19 @@ import (
 	"github.com/google/uuid"
 )
 
-var HTTPMethod = struct {
+type CRUD struct {
 	POST   string
 	GET    string
 	DELETE string
 	UPDATE string
-}{POST: "POST", GET: "GET", DELETE: "DELETE", UPDATE: "PATCH"}
+}
+
+var HTTPMethod CRUD
+
+func init() {
+
+	HTTPMethod = CRUD{POST: "POST", GET: "GET", DELETE: "DELETE", UPDATE: "PATCH"}
+}
 
 var PathValues = struct {
 	TaksId string
